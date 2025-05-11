@@ -1,0 +1,97 @@
+// This is your Prisma schema file
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  googleId      String    @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  segments      Segment[]
+  campaigns     Campaign[]
+}
+
+model Customer {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String
+  phone         String?
+  totalSpend    Float     @default(0)
+  visitCount    Int       @default(0)
+  lastVisit     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  orders        Order[]
+  segments      CustomerSegment[]
+  communications CommunicationLog[]
+}
+
+model Order {
+  id            String    @id @default(uuid())
+  customerId    String
+  amount        Float
+  status        String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  customer      Customer  @relation(fields: [customerId], references: [id])
+}
+
+model Segment {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  rules         Json      // Stores the segment rules in JSON format
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String
+  createdBy     User      @relation(fields: [createdById], references: [id])
+  customers     CustomerSegment[]
+  campaigns     Campaign[]
+}
+
+model CustomerSegment {
+  customerId    String
+  segmentId     String
+  createdAt     DateTime  @default(now())
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  segment       Segment   @relation(fields: [segmentId], references: [id])
+
+  @@id([customerId, segmentId])
+}
+
+model Campaign {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  message       String
+  status        String    // DRAFT, SCHEDULED, RUNNING, COMPLETED, FAILED
+  scheduledFor  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdById   String
+  createdBy     User      @relation(fields: [createdById], references: [id])
+  segmentId     String
+  segment       Segment   @relation(fields: [segmentId], references: [id])
+  communications CommunicationLog[]
+}
+
+model CommunicationLog {
+  id            String    @id @default(uuid())
+  campaignId    String
+  customerId    String
+  status        String    // PENDING, SENT, FAILED
+  sentAt        DateTime?
+  errorMessage  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  campaign      Campaign  @relation(fields: [campaignId], references: [id])
+  customer      Customer  @relation(fields: [customerId], references: [id])
+} 
